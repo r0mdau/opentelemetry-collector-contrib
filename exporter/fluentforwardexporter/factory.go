@@ -5,20 +5,19 @@ package fluentforwardexporter // import "github.com/open-telemetry/opentelemetry
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/config/confighttp"
-	"go.opentelemetry.io/collector/config/configopaque"
 	"go.opentelemetry.io/collector/exporter"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fluentforwardexporter/internal/metadata"
 )
 
-// NewFactory creates a factory for OTLP exporter.
+// NewFactory creates a factory for the fluentforward exporter.
 func NewFactory() exporter.Factory {
+	// later count failed log records
+	//_ = view.Register(metricViews()...)
+
 	return exporter.NewFactory(
 		metadata.Type,
 		createDefaultConfig,
@@ -28,26 +27,28 @@ func NewFactory() exporter.Factory {
 
 func createDefaultConfig() component.Config {
 	return &Config{
-		GeneratorURL:    "opentelemetry-collector",
-		DefaultSeverity: "info",
-		TimeoutSettings: exporterhelper.NewDefaultTimeoutSettings(),
-		RetrySettings:   exporterhelper.NewDefaultRetrySettings(),
-		QueueSettings:   exporterhelper.NewDefaultQueueSettings(),
-		HTTPClientSettings: confighttp.HTTPClientSettings{
-			Endpoint: "http://localhost:9093",
-			Timeout:  30 * time.Second,
-			Headers:  map[string]configopaque.String{},
-			// We almost read 0 bytes, so no need to tune ReadBufferSize.
-			WriteBufferSize: 512 * 1024,
+		TCPClientSettings: TCPClientSettings{
+			Endpoint: "localhost:24224",
 		},
+		RetrySettings: exporterhelper.NewDefaultRetrySettings(),
+		QueueSettings: exporterhelper.NewDefaultQueueSettings(),
 	}
 }
 
 func createLogsExporter(ctx context.Context, set exporter.CreateSettings, config component.Config) (exporter.Logs, error) {
-	cfg := config.(*Config)
+	exporterConfig := config.(*Config)
+	exp := newExporter(exporterConfig, set.TelemetrySettings)
 
-	if cfg.Endpoint == "" {
-		return nil, fmt.Errorf("exporter config requires a non-empty \"endpoint\"")
-	}
-	return newLogsExporter(ctx, cfg, set)
+	return exporterhelper.NewLogsExporter(
+		ctx,
+		set,
+		config,
+		exp.pushLogData,
+		// explicitly disable since we rely on http.Client timeout logic.
+		exporterhelper.WithTimeout(exporterhelper.TimeoutSettings{Timeout: 0}),
+		exporterhelper.WithRetry(exporterConfig.RetrySettings),
+		exporterhelper.WithQueue(exporterConfig.QueueSettings),
+		exporterhelper.WithStart(exp.start),
+		exporterhelper.WithShutdown(exp.stop),
+	)
 }

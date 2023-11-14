@@ -29,6 +29,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/elasticsearchexporter v0.88.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/f5cloudexporter v0.88.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fileexporter v0.88.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fluentforwardexporter v0.0.0-00010101000000-000000000000
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudexporter v0.88.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlecloudpubsubexporter v0.88.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/googlemanagedprometheusexporter v0.88.0
@@ -279,6 +280,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/collector/googlemanagedprometheus v0.44.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.20.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.44.0 // indirect
+	github.com/IBM/fluent-forward-go v0.2.2 // indirect
 	github.com/IBM/sarama v1.42.1 // indirect
 	github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -1031,6 +1033,8 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/mongo
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awscloudwatchreceiver => ../../receiver/awscloudwatchreceiver
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/lokiexporter => ../../exporter/lokiexporter
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/exporter/fluentforwardexporter => ../../exporter/fluentforwardexporter
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/internal/sharedcomponent => ../../internal/sharedcomponent
 

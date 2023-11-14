@@ -1,12 +1,11 @@
 fluentforward:
-fluentforward/2:
-  endpoint: "a.new.fluentforward.target:9093"
-  generator_url: "opentelemetry-collector"
-  severity: "info"
-  severity_attribute: "foo"
+  endpoint: "a.new.fluentforward.target:24224"
+fluentforward/allsettings:
+  endpoint: "a.new.fluentforward.target:24224"
   tls:
+    insecure: true
     ca_file: /var/lib/mycert.pem
-  timeout: 10s
+  #timeout: 10s
   sending_queue:
     enabled: true
     num_consumers: 2
@@ -16,7 +15,3 @@ fluentforward/2:
     initial_interval: 10s
     max_interval: 60s
     max_elapsed_time: 10m
-  headers:
-    "can you have a . here?": "F0000000-0000-0000-0000-000000000000"
-    header1: 234
-    another: "somevalue"

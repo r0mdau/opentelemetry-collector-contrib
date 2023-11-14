@@ -203,6 +203,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.44.0 h1:GjWPDY9PUlNWwTI95L/lktUp35BLtzBoBElH314eafM=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.44.0/go.mod h1:qkFPtMouQjW5ugdHIOthiTbweVHUTqbS0Qsu55KqXks=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
+github.com/IBM/fluent-forward-go v0.2.2 h1:T48kAjSMOAqTcpd6zkzqLAFOWlYPYIbCFJcEjrVzV1U=
+github.com/IBM/fluent-forward-go v0.2.2/go.mod h1:U1SVl6rVRGMC/QhCTZ3iQx4P/ykCeg1y6UoVnlz+OAY=
 github.com/IBM/sarama v1.42.1 h1:wugyWa15TDEHh2kvq2gAy1IHLjEjuYOYgXz/ruC/OSQ=
 github.com/IBM/sarama v1.42.1/go.mod h1:Xxho9HkHd4K/MDUo/T/sOqwtX/17D33++E9Wib6hUdQ=
 github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c h1:RGWPOewvKIROun94nF7v2cua9qP+thov/7M50KEoeSU=

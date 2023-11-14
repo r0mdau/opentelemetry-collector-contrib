@@ -7,15 +7,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"time"
-
-	"github.com/tinylib/msgp/msgp"
 )
 
 type eventTimeExt time.Time
-
-func init() {
-	msgp.RegisterExtension(0, func() msgp.Extension { return new(eventTimeExt) })
-}
 
 func (*eventTimeExt) ExtensionType() int8 {
 	return 0x00
