@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/containerd/cgroups/v3 v3.0.2
+	github.com/rdforte/gomaxecs v1.1.0
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v0.116.0
 	go.opentelemetry.io/collector/component/componenttest v0.116.0
