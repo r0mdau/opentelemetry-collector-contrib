@@ -11,6 +11,8 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
@@ -30,6 +32,7 @@ import (
 
 const (
 	defaultCgroup2Path = "/sys/fs/cgroup"
+	ecsMetadataUri     = "ECS_CONTAINER_METADATA_URI_V4"
 )
 
 // checkCgroupSystem skips the test if is not run in a cgroupv2 system
@@ -63,6 +66,26 @@ func cgroupMaxCpu(filename string) (quota int64, period uint64, err error) {
 	return quota, period, err
 }
 
+func testServerECSMetadata(t *testing.T, containerCPU, taskCPU int) *httptest.Server {
+	t.Helper()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		_, err := w.Write([]byte(fmt.Sprintf(`{"Limits":{"CPU":%d},"DockerId":"container-id"}`, containerCPU)))
+		assert.NoError(t, err)
+	})
+	mux.HandleFunc("/task", func(w http.ResponseWriter, _ *http.Request) {
+		_, err := w.Write([]byte(fmt.Sprintf(
+			`{"Containers":[{"DockerId":"container-id","Limits":{"CPU":%d}}],"Limits":{"CPU":%d}}`,
+			containerCPU,
+			taskCPU,
+		)))
+		assert.NoError(t, err)
+	})
+
+	return httptest.NewServer(mux)
+}
+
 func TestCgroupV2SudoIntegration(t *testing.T) {
 	checkCgroupSystem(t)
 	pointerInt64 := func(val int64) *int64 {
@@ -81,6 +104,7 @@ func TestCgroupV2SudoIntegration(t *testing.T) {
 		config             *Config
 		expectedGoMaxProcs int
 		expectedGoMemLimit int64
+		setECSMetadataURI  bool
 	}{
 		{
 			name:            "90% the max cgroup memory and 12 GOMAXPROCS",
@@ -144,6 +168,71 @@ func TestCgroupV2SudoIntegration(t *testing.T) {
 			// 134217728 * 0.1
 			expectedGoMemLimit: 13421772,
 		},
+		{
+			name:            "AWS ECS 90% the max cgroup memory and 12 GOMAXPROCS",
+			cgroupCpuQuota:  pointerInt64(100000),
+			cgroupCpuPeriod: 8000,
+			// 128 Mb
+			cgroupMaxMemory: 134217728,
+			config: &Config{
+				GoMaxProcs: GoMaxProcsConfig{
+					Enabled: true,
+				},
+				GoMemLimit: GoMemLimitConfig{
+					Enabled: true,
+					Ratio:   0.9,
+				},
+			},
+			// 100000 / 8000
+			expectedGoMaxProcs: 12,
+			// 134217728 * 0.9
+			expectedGoMemLimit: 120795955,
+			setECSMetadataURI:  true,
+		},
+		{
+			name:            "AWS ECS 50% of the max cgroup memory and 1 GOMAXPROCS",
+			cgroupCpuQuota:  pointerInt64(100000),
+			cgroupCpuPeriod: 100000,
+			// 128 Mb
+			cgroupMaxMemory: 134217728,
+			config: &Config{
+				GoMaxProcs: GoMaxProcsConfig{
+					Enabled: true,
+				},
+				GoMemLimit: GoMemLimitConfig{
+					Enabled: true,
+					Ratio:   0.5,
+				},
+			},
+			// 100000 / 100000
+			expectedGoMaxProcs: 1,
+			// 134217728 * 0.5
+			expectedGoMemLimit: 67108864,
+			setECSMetadataURI:  true,
+		},
+		{
+			name:            "AWS ECS 10% of the max cgroup memory, max cpu, default GOMAXPROCS",
+			cgroupCpuQuota:  nil,
+			cgroupCpuPeriod: 100000,
+			// 128 Mb
+			cgroupMaxMemory: 134217728,
+			config: &Config{
+				GoMaxProcs: GoMaxProcsConfig{
+					Enabled: true,
+				},
+				GoMemLimit: GoMemLimitConfig{
+					Enabled: true,
+					Ratio:   0.1,
+				},
+			},
+			// GOMAXPROCS is set to the value of  `cpu.max / cpu.period`
+			// If cpu.max is set to max, GOMAXPROCS should not be
+			// modified
+			expectedGoMaxProcs: runtime.GOMAXPROCS(-1),
+			// 134217728 * 0.1
+			expectedGoMemLimit: 13421772,
+			setECSMetadataURI:  true,
+		},
 	}
 
 	cgroupPath, err := cgroup2.PidGroupPath(os.Getpid())
@@ -198,12 +287,25 @@ func TestCgroupV2SudoIntegration(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			// if running in ECS environment, set the ECS metedata URI environment variable
+			// to get the Cgroup CPU quota from the httptest server
+			cleanECS := func() {}
+			if test.setECSMetadataURI {
+				server := testServerECSMetadata(t, test.expectedGoMaxProcs*1024, test.expectedGoMaxProcs*1024)
+				os.Setenv(ecsMetadataUri, server.URL)
+				cleanECS = func() {
+					server.Close()
+					os.Unsetenv(ecsMetadataUri)
+				}
+			}
+
 			// restore startup cgroup initial resource values
 			t.Cleanup(func() {
 				debug.SetMemoryLimit(initialGoMem)
 				runtime.GOMAXPROCS(initialGoProcs)
 				memoryCgroupCleanUp()
 				cpuCgroupCleanUp()
+				cleanECS()
 			})
 
 			err = manager.Update(&cgroup2.Resources{
